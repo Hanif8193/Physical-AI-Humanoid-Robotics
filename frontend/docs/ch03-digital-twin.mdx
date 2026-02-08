@@ -1,0 +1,263 @@
+---
+title: "Digital Twins & Simulation (Gazebo + Unity)"
+module: "simulation"
+difficulty: "intermediate"
+hardware_tags: ["RTX-LOCAL", "CLOUD"]
+personalization_supported: true
+translation_supported: true
+order: 3
+---
+
+import HardwareBadge from '@site/src/components/HardwareBadge';
+
+# Digital Twins & Simulation (Gazebo + Unity)
+
+## Overview
+
+Before deploying AI to physical robots — which is expensive, slow, and potentially dangerous — engineers build **digital twins**: virtual replicas that simulate physics, sensors, and environments. This chapter covers Gazebo for physics-accurate robot simulation, Unity for photorealistic visualization, and how to use sensor data (LiDAR, depth cameras, IMUs) to make simulation feel real.
+
+## Learning Outcomes
+
+By the end of this chapter, you will be able to:
+
+1. **Create** a physics-based robot simulation in Gazebo with realistic sensor models.
+2. **Integrate** Unity as a visualization layer alongside Gazebo's physics engine.
+3. **Evaluate** sensor fusion strategies for combining LiDAR, depth camera, and IMU data.
+
+---
+
+## Concepts
+
+### 3.1 What Is a Digital Twin?
+
+A **digital twin** is a virtual model of a physical system that:
+- Mirrors the physical system's state in real time (or near real time)
+- Simulates physics, dynamics, and sensor behavior
+- Allows testing without real-world consequences
+- Enables sim-to-real transfer of trained AI models
+
+```
+Physical Robot                Digital Twin
+─────────────                ─────────────
+Motor encoders  ◄──────────► Virtual joints
+Camera frames   ◄──────────► Rendered images
+LiDAR scans     ◄──────────► Raycast simulation
+Battery state   ◄──────────► Power model
+```
+
+### 3.2 Gazebo: Physics Simulation Engine
+
+**Gazebo Harmonic** (the latest stable release) provides:
+- **ODE/Bullet/DART physics**: Realistic rigid body dynamics
+- **Sensor plugins**: LiDAR, RGB-D cameras, IMU, GPS, contact sensors
+- **ROS 2 bridge**: Seamless topic/service integration via `ros_gz_bridge`
+- **World SDF format**: XML-based world and model definition
+
+#### SDF World Example
+
+```xml
+<?xml version="1.0" ?>
+<sdf version="1.9">
+  <world name="robotics_lab">
+    <physics name="default_physics" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <!-- Humanoid robot spawn -->
+    <include>
+      <uri>model://humanoid_base</uri>
+      <pose>0 0 1.0 0 0 0</pose>
+    </include>
+  </world>
+</sdf>
+```
+
+### 3.3 Sensor Modeling
+
+#### LiDAR Simulation
+
+```xml
+<sensor name="lidar" type="gpu_lidar">
+  <always_on>true</always_on>
+  <update_rate>10</update_rate>
+  <lidar>
+    <scan>
+      <horizontal>
+        <samples>360</samples>
+        <resolution>1</resolution>
+        <min_angle>-3.14159</min_angle>
+        <max_angle>3.14159</max_angle>
+      </horizontal>
+    </scan>
+    <range>
+      <min>0.12</min>
+      <max>3.5</max>
+      <resolution>0.015</resolution>
+    </range>
+    <noise>
+      <type>gaussian</type>
+      <mean>0.0</mean>
+      <stddev>0.01</stddev>
+    </noise>
+  </lidar>
+  <ros>
+    <topic>/scan</topic>
+  </ros>
+</sensor>
+```
+
+#### Depth Camera (RGB-D)
+
+```xml
+<sensor name="depth_camera" type="depth_camera">
+  <update_rate>30</update_rate>
+  <camera>
+    <horizontal_fov>1.047</horizontal_fov>
+    <image>
+      <width>640</width>
+      <height>480</height>
+      <format>R8G8B8</format>
+    </image>
+    <clip>
+      <near>0.05</near>
+      <far>10.0</far>
+    </clip>
+  </camera>
+</sensor>
+```
+
+#### IMU (Inertial Measurement Unit)
+
+```xml
+<sensor name="imu_sensor" type="imu">
+  <always_on>true</always_on>
+  <update_rate>200</update_rate>
+  <imu>
+    <angular_velocity>
+      <x><noise type="gaussian"><mean>0</mean><stddev>0.002</stddev></noise></x>
+    </angular_velocity>
+    <linear_acceleration>
+      <x><noise type="gaussian"><mean>0</mean><stddev>0.017</stddev></noise></x>
+    </linear_acceleration>
+  </imu>
+</sensor>
+```
+
+### 3.4 Sensor Fusion
+
+Real robots combine multiple sensors to overcome individual limitations:
+
+| Sensor | Strength | Weakness |
+|--------|----------|----------|
+| LiDAR | Accurate 3D geometry | No color; expensive |
+| Depth Camera | Color + depth; cheap | Limited range; sunlight issues |
+| IMU | Fast orientation updates | Drifts over time |
+| GPS | Absolute position | Indoor unusable; noisy |
+
+**Extended Kalman Filter (EKF)** fuses IMU + odometry + GPS for robot localization:
+
+```python
+# ROS 2 robot_localization package provides EKF fusion
+ros2 run robot_localization ekf_node --ros-args --params-file ekf_config.yaml
+```
+
+### 3.5 Unity as Visualization Layer
+
+While Gazebo handles physics, **Unity** (via Unity Robotics Hub) provides:
+- Photorealistic rendering using HDRP or URP
+- Synthetic data generation for ML training
+- VR/AR visualization
+- Real-time telemetry dashboards
+
+The ROS–Unity bridge (`ros-tcp-connector`) enables:
+
+```
+ROS 2 ←──ros_gz_bridge──► Gazebo (physics)
+  │
+  └──ros_tcp_endpoint──► Unity (visualization)
+```
+
+---
+
+## Lab
+
+### Lab A: Humanoid Robot in Gazebo <HardwareBadge tier="RTX-LOCAL" />
+
+**Prerequisites:**
+- [ ] NVIDIA RTX GPU (RTX 3070+ recommended for GPU sensors)
+- [ ] Gazebo Harmonic installed
+- [ ] ROS 2 Humble + `ros_gz` bridge
+
+**Instructions:**
+
+```bash
+# Step 1: Install required packages
+sudo apt install -y ros-humble-ros-gz-bridge \
+                   ros-humble-ros-gz-sim \
+                   ros-humble-robot-state-publisher
+
+# Step 2: Launch simulation world
+ros2 launch ros_gz_sim gz_sim.launch.py gz_args:="-v 4 empty.sdf"
+
+# Step 3: Spawn a simple robot model
+ros2 run ros_gz_sim create -name humanoid_test -topic /robot_description
+
+# Step 4: View sensor data
+ros2 topic echo /scan  # LiDAR data
+ros2 topic echo /depth_camera/image_raw  # Depth frames
+```
+
+**Expected Output:**
+```
+Gazebo window opens with empty world
+Robot model appears when spawned
+/scan topic shows LaserScan messages at 10 Hz
+```
+
+### Lab B: Omniverse Cloud Simulation <HardwareBadge tier="CLOUD" />
+
+**Prerequisites:**
+- [ ] NVIDIA Account (free tier available)
+- [ ] Web browser (Chrome/Edge recommended)
+
+**Instructions:**
+
+1. Navigate to [NVIDIA Omniverse Cloud](https://developer.nvidia.com/omniverse)
+2. Launch Isaac Sim Cloud instance (free tier: 2 hours/month)
+3. Open the provided "Humanoid Lab" scene
+4. Connect ROS 2 bridge: `Edit > Extensions > OmniIsaac ROS Bridge`
+5. Verify topics: run `ros2 topic list` in the Omniverse terminal
+
+---
+
+## Exercises
+
+1. **Sensor comparison**: In a simulated world, place a robot with both LiDAR and depth camera. Navigate through a doorway and compare the sensor outputs. Which sensor performs better for door detection?
+
+2. **Noise analysis**: Modify the IMU noise parameters (stddev: 0.002 → 0.02) and observe how robot localization degrades over a 60-second run. Plot the drift.
+
+3. **Digital twin sync**: Implement a simple ROS 2 node that mirrors a virtual robot's joint angles to a physical servo motor (or visualizes them in RViz2). Verify that virtual and physical states stay synchronized.
+
+---
+
+## Summary
+
+Key takeaways from this chapter:
+
+- **Digital twins** are virtual replicas that enable safe, fast, and cheap robot development
+- **Gazebo** provides physics-accurate simulation with realistic sensor plugins (LiDAR, depth, IMU)
+- **SDF format** defines worlds and robot models in XML
+- **Sensor fusion** via EKF combines multiple sensors to overcome individual limitations
+- **Unity** adds photorealistic rendering and synthetic data generation on top of Gazebo physics
+- **Sim-to-real** gap remains the biggest challenge — we address this in Chapter 4
+
+**Next**: → [Chapter 4: The AI Robot Brain (NVIDIA Isaac)](/ch04-isaac-platform)

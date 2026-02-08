@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <circle cx="100" cy="100" r="90" fill="#1a1a2e" stroke="#4fc3f7" stroke-width="4"/>
+  <text x="100" y="115" font-family="sans-serif" font-size="48" font-weight="bold" fill="#4fc3f7" text-anchor="middle">AI</text>
+  <circle cx="100" cy="40" r="12" fill="#4fc3f7"/>
+  <circle cx="40" cy="130" r="12" fill="#4fc3f7"/>
+  <circle cx="160" cy="130" r="12" fill="#4fc3f7"/>
+  <line x1="100" y1="52" x2="100" y2="80" stroke="#4fc3f7" stroke-width="2"/>
+  <line x1="52" y1="130" x2="80" y2="130" stroke="#4fc3f7" stroke-width="2"/>
+  <line x1="120" y1="130" x2="148" y2="130" stroke="#4fc3f7" stroke-width="2"/>
+</svg>

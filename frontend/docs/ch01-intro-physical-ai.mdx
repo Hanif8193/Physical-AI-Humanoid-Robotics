@@ -1,0 +1,183 @@
+---
+title: "Introduction to Physical AI & Embodied Intelligence"
+module: "foundations"
+difficulty: "beginner"
+hardware_tags: ["CPU-ONLY", "CLOUD"]
+personalization_supported: true
+translation_supported: true
+order: 1
+---
+
+import HardwareBadge from '@site/src/components/HardwareBadge';
+
+# Introduction to Physical AI & Embodied Intelligence
+
+## Overview
+
+Physical AI is the frontier where artificial intelligence leaves the digital realm and enters the physical world — inhabiting robots, drones, and autonomous machines that perceive, reason, and act. This chapter introduces the foundational concepts of embodied intelligence, contrasting traditional AI software agents with physical AI systems that must cope with the real world's complexity, uncertainty, and irreversibility.
+
+## Learning Outcomes
+
+By the end of this chapter, you will be able to:
+
+1. **Define** embodied intelligence and distinguish it from disembodied (software-only) AI.
+2. **Analyze** the unique challenges physical AI systems face compared to software agents.
+3. **Design** a conceptual architecture for a simple physical AI system using the sense–plan–act loop.
+
+---
+
+## Concepts
+
+### 1.1 What Is Physical AI?
+
+Physical AI refers to intelligent systems that perceive the physical world through sensors, reason about it using AI models, and interact with it through actuators. Unlike a chatbot or recommendation engine that operates purely in software, a physical AI agent must:
+
+- **Sense** the environment (cameras, LiDAR, microphones, IMUs)
+- **Process** sensory data in real time
+- **Plan** actions based on goals and constraints
+- **Act** physically (move, grasp, speak)
+- **Learn** from the results of its actions
+
+> **Key Insight**: The physical world is unforgiving. A software bug crashes an app; a physical AI bug can crash a robot into a person.
+
+### 1.2 Embodied vs. Disembodied Intelligence
+
+| Property | Software AI Agent | Physical AI (Embodied) |
+|----------|-------------------|----------------------|
+| Perception | Text, images (digital) | Real-world sensors |
+| Action space | API calls, text output | Motors, grippers, wheels |
+| Latency tolerance | Seconds | Milliseconds |
+| Error reversibility | Undo button | Often irreversible |
+| World model | Static / digital twin | Dynamic physical environment |
+
+Embodied intelligence requires the AI to maintain a model of the physical world that updates in real time. This is called the **world model** or **mental model** of the robot.
+
+### 1.3 The Sense–Plan–Act Loop
+
+Every physical AI system follows a fundamental loop:
+
+```
+     ┌─────────────────────────────────┐
+     │         Physical World          │
+     └───────┬─────────────────────────┘
+             │ Sensors
+             ▼
+     ┌───────────────┐
+     │     SENSE     │  ← LiDAR, camera, microphone, IMU
+     └───────┬───────┘
+             │ Sensor data
+             ▼
+     ┌───────────────┐
+     │     PLAN      │  ← AI brain (LLM, neural net, planner)
+     └───────┬───────┘
+             │ Action commands
+             ▼
+     ┌───────────────┐
+     │      ACT      │  ← Motors, grippers, speakers
+     └───────┬───────┘
+             │ Physical effects
+             ▼
+     ┌─────────────────────────────────┐
+     │         Physical World          │
+     └─────────────────────────────────┘
+```
+
+Modern physical AI systems run this loop at 30–1000 Hz depending on the task.
+
+### 1.4 Humanoid Robotics: The Hardest Problem
+
+Humanoid robots represent the pinnacle of physical AI:
+- **Bipedal locomotion** — inherently unstable; requires constant balance correction
+- **Dexterous manipulation** — 27 degrees of freedom in each hand
+- **Natural language interaction** — understanding and generating speech in context
+- **Unstructured environment navigation** — homes, offices, warehouses
+
+This textbook focuses on the software stack that powers humanoid robots, using simulation environments to teach concepts safely before real hardware deployment.
+
+### 1.5 The Robotics Software Stack
+
+A full robotics system involves multiple layers:
+
+```
+┌─────────────────────────────────────┐
+│  Application Layer (Task Planner)   │  ← LLM-based reasoning
+├─────────────────────────────────────┤
+│  Navigation & Manipulation Stack    │  ← Nav2, MoveIt2
+├─────────────────────────────────────┤
+│  Perception Stack (Vision/AI)       │  ← YOLO, VSLAM, depth estimation
+├─────────────────────────────────────┤
+│  Communication Layer (ROS 2)        │  ← Topics, services, actions
+├─────────────────────────────────────┤
+│  Hardware Abstraction Layer         │  ← Drivers, URDF, motor control
+├─────────────────────────────────────┤
+│  Physical Hardware                  │  ← Sensors, actuators, compute
+└─────────────────────────────────────┘
+```
+
+---
+
+## Lab
+
+### Lab A: Setting Up Your Development Environment <HardwareBadge tier="CPU-ONLY" />
+
+**Prerequisites:**
+- [ ] Linux Ubuntu 22.04 (or WSL2 on Windows)
+- [ ] 8 GB RAM minimum
+- [ ] Internet connection
+
+**Instructions:**
+
+```bash
+# Step 1: Install ROS 2 Humble (Ubuntu 22.04)
+sudo apt update && sudo apt install -y curl gnupg lsb-release
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
+sudo sh -c 'echo "deb http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2-latest.list'
+sudo apt update
+sudo apt install -y ros-humble-desktop
+
+# Step 2: Source ROS 2
+echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+
+# Step 3: Verify installation
+ros2 --version
+# Expected: ros2 cli version X.X.X (from source/binary)
+```
+
+**Expected Output:**
+```
+ros2 cli version 0.18.X (or similar)
+```
+
+### Lab B (Cloud Alternative): ROS 2 on GitHub Codespaces <HardwareBadge tier="CLOUD" />
+
+If you don't have a Linux machine, use GitHub Codespaces with the provided dev container:
+
+1. Fork this repository
+2. Open in Codespaces (button in GitHub)
+3. The dev container pre-installs ROS 2 Humble
+4. Run `ros2 --version` to verify
+
+---
+
+## Exercises
+
+1. **Draw the sense–plan–act loop** for a robot vacuum cleaner. Identify what sensors it uses, what its "AI brain" decides, and what actuators carry out the plan.
+
+2. **Compare and contrast** two real-world physical AI systems (e.g., Tesla FSD vs. Boston Dynamics Atlas). What makes each uniquely challenging?
+
+3. **Research question**: What is the difference between a "hard real-time" and "soft real-time" system? Why does a surgical robot require hard real-time guarantees while a smart vacuum does not?
+
+---
+
+## Summary
+
+Key takeaways from this chapter:
+
+- **Physical AI** differs from software AI in that it must sense, plan, and act in the real physical world
+- **Embodied intelligence** requires a world model, real-time perception, and actuation
+- The **sense–plan–act loop** is the fundamental operating cycle of all robotic systems
+- **Humanoid robots** represent the most challenging physical AI problem due to bipedal locomotion, dexterous manipulation, and unstructured environments
+- The **robotics software stack** has clear layers: hardware → ROS 2 → perception → navigation → application
+
+**Next**: → [Chapter 2: The Robotic Nervous System (ROS 2)](/ch02-ros2-fundamentals)

@@ -1,0 +1,371 @@
+---
+title: "Capstone: The Autonomous Humanoid"
+module: "capstone"
+difficulty: "advanced"
+hardware_tags: ["RTX-LOCAL", "CLOUD"]
+personalization_supported: true
+translation_supported: true
+order: 6
+---
+
+import HardwareBadge from '@site/src/components/HardwareBadge';
+
+# Capstone: The Autonomous Humanoid
+
+## Overview
+
+This capstone chapter integrates everything you've learned across all five previous chapters into a single, cohesive system: a simulated humanoid robot that receives a voice command, plans a task using an LLM, navigates an environment using VSLAM and Nav2, detects and identifies an object using vision AI, and manipulates it autonomously. This is the complete Physical AI pipeline in action.
+
+## Learning Outcomes
+
+By the end of this chapter, you will be able to:
+
+1. **Integrate** ROS 2, Isaac Sim, Isaac ROS, and OpenAI into a single autonomous pipeline.
+2. **Implement** a complete sense-plan-act loop with voice input and physical manipulation output.
+3. **Evaluate** the performance of your autonomous humanoid system and identify improvement areas.
+
+---
+
+## Concepts
+
+### 6.1 The Complete System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│              Autonomous Humanoid — Full System Architecture              │
+└─────────────────────────────────────────────────────────────────────────┘
+
+     🎤 Voice Input
+          │
+          ▼
+     ┌──────────────────────────────────────────────────────────┐
+     │  LAYER 1: PERCEPTION (Chapter 2 + 3 + 4)                │
+     │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐ │
+     │  │ Whisper  │  │ Camera   │  │  LiDAR   │  │   IMU   │ │
+     │  │ (audio)  │  │ (visual) │  │  (3D)    │  │ (pose)  │ │
+     │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬────┘ │
+     └───────┼─────────────┼─────────────┼──────────────┼──────┘
+             │             │             │              │
+             ▼             ▼             ▼              ▼
+     ┌──────────────────────────────────────────────────────────┐
+     │  LAYER 2: COGNITION (Chapter 4 + 5)                     │
+     │  ┌──────────────────┐    ┌─────────────────────────────┐ │
+     │  │  GPT-4o Planner  │    │  cuVSLAM + Object Detection │ │
+     │  │  (task decomp)   │    │  (where am I + what's here) │ │
+     │  └────────┬─────────┘    └─────────────────────────────┘ │
+     └───────────┼──────────────────────────────────────────────┘
+                 │ action plan JSON
+                 ▼
+     ┌──────────────────────────────────────────────────────────┐
+     │  LAYER 3: EXECUTION (Chapter 2 + 4)                     │
+     │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐ │
+     │  │   Nav2   │  │ MoveIt2  │  │ Gripper  │  │  TTS    │ │
+     │  │ (navigate)│  │ (arm)    │  │ (grasp)  │  │(speak)  │ │
+     │  └──────────┘  └──────────┘  └──────────┘  └─────────┘ │
+     └──────────────────────────────────────────────────────────┘
+                 │
+                 ▼
+          🤖 Robot Acts
+```
+
+### 6.2 ROS 2 Node Graph for the Full System
+
+All components communicate via ROS 2:
+
+```
+/microphone_node ──► /audio_raw ──► /whisper_node ──► /transcription
+
+/camera_node ──► /image_raw ──► /object_detector ──► /detected_objects
+/depth_node ──► /depth_image ─┘
+
+/lidar_node ──► /scan ──► /slam_node ──► /map, /pose
+/imu_node ──► /imu ──────┘
+
+/transcription ──► /vla_planner ◄── /detected_objects
+                        │         ◄── /pose
+                        │
+                        ▼ /action_plan
+                   /vla_executor
+                        │
+                        ├──► /navigate_to_pose (Nav2)
+                        ├──► /moveit/move_group (arm)
+                        └──► /gripper_cmd
+```
+
+### 6.3 The Demo Task: "Bring Me the Red Bottle"
+
+The capstone demonstration task:
+1. **Humanoid hears**: "Please bring me the red bottle from the table"
+2. **Whisper transcribes** the speech to text
+3. **GPT-4o plans**: NAVIGATE(table) → LOOK_AT(red bottle) → PICK(red bottle) → NAVIGATE(user) → PLACE(red bottle, user_hand)
+4. **Nav2 navigates** to the table using the map built by cuVSLAM
+5. **Object detector** (YOLOv8) identifies and localizes the red bottle in 3D
+6. **MoveIt2** plans the arm trajectory to the bottle
+7. **Gripper** grasps the bottle
+8. **Nav2** navigates back to the user
+9. **Humanoid speaks**: "Here is your red bottle."
+
+### 6.4 Implementation: The Orchestrator Node
+
+```python
+#!/usr/bin/env python3
+"""
+Autonomous Humanoid Orchestrator
+Integrates all layers: Perception → Cognition → Execution
+"""
+import rclpy
+from rclpy.node import Node
+from rclpy.callback_groups import ReentrantCallbackGroup
+from std_msgs.msg import String
+from vision_msgs.msg import Detection3DArray
+import json
+import asyncio
+
+class AutonomousHumanoid(Node):
+    """Main orchestrator for the autonomous humanoid."""
+
+    def __init__(self):
+        super().__init__('autonomous_humanoid')
+        self._cb_group = ReentrantCallbackGroup()
+
+        # Subscriptions
+        self.create_subscription(
+            String, '/transcription', self._on_command, 10,
+            callback_group=self._cb_group
+        )
+        self.create_subscription(
+            Detection3DArray, '/detected_objects', self._on_detection, 10,
+            callback_group=self._cb_group
+        )
+
+        # Publishers
+        self.action_pub = self.create_publisher(String, '/action_plan', 10)
+        self.speech_pub = self.create_publisher(String, '/tts_input', 10)
+
+        # State
+        self._current_task = None
+        self._detections = {}
+        self._planner = self._init_planner()
+
+        self.get_logger().info('🤖 Autonomous Humanoid ready. Listening for commands...')
+
+    def _init_planner(self):
+        from openai import OpenAI
+        return OpenAI()
+
+    def _on_command(self, msg: String):
+        """Handle incoming voice command."""
+        command = msg.data.strip()
+        if not command or len(command) < 3:
+            return
+
+        self.get_logger().info(f'📢 Received command: "{command}"')
+        self._current_task = command
+
+        # Build context from current detections
+        context = {
+            "detected_objects": list(self._detections.keys()),
+            "robot_location": "home_position",
+        }
+
+        # Plan with GPT-4o
+        plan = self._plan_task(command, context)
+        self.get_logger().info(f'📋 Plan: {json.dumps(plan, indent=2)}')
+
+        # Execute
+        self.action_pub.publish(String(data=json.dumps(plan)))
+
+    def _plan_task(self, command: str, context: dict) -> dict:
+        """Use GPT-4o to decompose task into actions."""
+        response = self._planner.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a robot task planner. Convert commands to action sequences.\n"
+                        "Available actions: NAVIGATE(x,y), LOOK_AT(obj), PICK(obj), "
+                        "PLACE(obj,target), SPEAK(text).\n"
+                        "Return JSON: {\"actions\": [{\"action\": ..., \"args\": [...]}]}"
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Command: {command}\nContext: {json.dumps(context)}",
+                },
+            ],
+            response_format={"type": "json_object"},
+        )
+        return json.loads(response.choices[0].message.content)
+
+    def _on_detection(self, msg: Detection3DArray):
+        """Update object detection state."""
+        self._detections = {
+            det.results[0].hypothesis.class_id: det.bbox.center
+            for det in msg.detections
+            if det.results
+        }
+
+
+def main():
+    rclpy.init()
+    node = AutonomousHumanoid()
+    executor = rclpy.executors.MultiThreadedExecutor()
+    executor.add_node(node)
+    executor.spin()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
+```
+
+### 6.5 Launch System
+
+```python
+# launch/autonomous_humanoid.launch.py
+from launch import LaunchDescription
+from launch_ros.actions import Node
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+
+def generate_launch_description():
+    return LaunchDescription([
+        # Isaac Sim (runs separately — see Lab A)
+
+        # ROS 2 nodes
+        Node(package='whisper_ros2', executable='whisper_node',
+             parameters=[{'model': 'base', 'language': 'en'}]),
+
+        Node(package='isaac_ros_object_detection', executable='yolov8_node',
+             parameters=[{'model_file_path': '/models/yolov8n.onnx'}]),
+
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource('/opt/ros/humble/share/nav2_bringup/launch/navigation_launch.py'),
+            launch_arguments={'use_sim_time': 'true'}.items(),
+        ),
+
+        Node(package='capstone_demo', executable='autonomous_humanoid',
+             output='screen'),
+    ])
+```
+
+### 6.6 Performance Evaluation
+
+| Metric | Target | How to Measure |
+|--------|--------|----------------|
+| Command recognition accuracy | > 95% | WER on 100 spoken commands |
+| Task planning success | > 90% | % plans executable by executor |
+| Navigation success | > 85% | % goals reached without collision |
+| Object detection mAP | > 0.7 | On validation images from sim |
+| End-to-end task completion | > 70% | Full task demo success rate |
+| Total pipeline latency | < 5s | Voice input → first robot motion |
+
+---
+
+## Lab
+
+### Lab A: Full Autonomous Demo in Isaac Sim <HardwareBadge tier="RTX-LOCAL" />
+
+**Prerequisites:**
+- [ ] All Chapter 1-5 labs completed
+- [ ] Isaac Sim 4.0+ with ROS 2 bridge
+- [ ] OpenAI API key
+- [ ] RTX 3080+ GPU
+
+**Instructions:**
+
+```bash
+# Step 1: Launch Isaac Sim with the capstone scene
+# Open Isaac Sim → File > Open > capstone_humanoid_warehouse.usd
+
+# Step 2: Start all ROS 2 nodes
+ros2 launch capstone_demo autonomous_humanoid.launch.py
+
+# Step 3: Verify all topics active
+ros2 topic list
+# Expected: /transcription, /detected_objects, /map, /action_plan, etc.
+
+# Step 4: Issue a voice command (or publish text for testing)
+ros2 topic pub /transcription std_msgs/msg/String \
+  "data: 'Please bring me the red bottle from the table'" --once
+
+# Step 5: Observe the robot execute the full pipeline
+# Monitor: rviz2 for navigation, Isaac Sim for visual
+```
+
+**Expected Outcome:**
+```
+[autonomous_humanoid]: 📢 Received command: "Please bring me the red bottle"
+[autonomous_humanoid]: 📋 Plan: {"actions": [{"action": "NAVIGATE", ...}, ...]}
+[vla_executor]: Executing NAVIGATE to table...
+[vla_executor]: Executing LOOK_AT red_bottle...
+[vla_executor]: Executing PICK red_bottle...
+[vla_executor]: ✅ Task complete!
+```
+
+### Lab B: Cloud Simulation Demo <HardwareBadge tier="CLOUD" />
+
+**Prerequisites:**
+- [ ] NVIDIA Omniverse Cloud account
+- [ ] OpenAI API key
+
+**Instructions:**
+
+1. Launch Isaac Sim Cloud (Omniverse Cloud)
+2. Load the provided `capstone_warehouse.usd` scene
+3. Connect the ROS 2 bridge
+4. Deploy the orchestrator node from Cloud Shell:
+   ```bash
+   # In Omniverse Cloud terminal
+   ros2 run capstone_demo autonomous_humanoid
+   ```
+5. Use the web-based voice input interface to issue commands
+6. Observe the humanoid execute the full pipeline
+
+---
+
+## Exercises
+
+1. **Add a second task**: Extend the system to handle "Sort the colored blocks by color" — implement a multi-object manipulation sequence.
+
+2. **Failure recovery**: Implement a recovery behavior tree that:
+   - Retries PICK 3 times if gripper fails
+   - Calls SPEAK("I cannot find the object") after 3 failed LOOK_AT attempts
+   - Navigates back to home_position after task completion or failure
+
+3. **Full evaluation**: Run your autonomous humanoid on 10 different voice commands. Record:
+   - Success rate
+   - Average completion time
+   - Most common failure modes
+   - Proposed improvements
+
+---
+
+## Summary
+
+In this capstone chapter, you built the complete Physical AI pipeline:
+
+- **Perception** (Ch. 1-3): ROS 2 nodes, Gazebo/Isaac Sim sensors, digital twins
+- **Localization** (Ch. 4): cuVSLAM builds the map; Nav2 navigates it
+- **Cognition** (Ch. 5): Whisper hears; GPT-4o plans; visual grounding locates objects
+- **Execution** (Ch. 2, 4): Nav2 navigates; MoveIt2 moves the arm; gripper grasps
+
+You have now built a system that bridges AI agents (software brains) with robots (physical bodies). This is **Physical AI** — intelligence embodied in the world.
+
+---
+
+> 🎓 **Congratulations!** You've completed the Physical AI & Humanoid Robotics textbook.
+>
+> You now have the knowledge and skills to:
+> - Build ROS 2-based robot agents
+> - Simulate physics-accurate robots in Gazebo and Isaac Sim
+> - Deploy GPU-accelerated perception with Isaac ROS
+> - Create voice-controlled VLA systems with LLMs
+> - Integrate all layers into an autonomous humanoid pipeline
+>
+> **What's next?**
+> - Deploy on real hardware (Jetson Orin)
+> - Fine-tune VLA models on your robot's data
+> - Contribute to open-source robotics (ROS 2, OpenVLA, Nav2)
+> - Build your own physical AI product

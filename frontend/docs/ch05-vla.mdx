@@ -1,0 +1,381 @@
+---
+title: "Vision-Language-Action (LLMs + Robotics)"
+module: "vla"
+difficulty: "advanced"
+hardware_tags: ["RTX-LOCAL", "CLOUD"]
+personalization_supported: true
+translation_supported: true
+order: 5
+---
+
+import HardwareBadge from '@site/src/components/HardwareBadge';
+
+# Vision-Language-Action (LLMs + Robotics)
+
+## Overview
+
+Vision-Language-Action (VLA) models represent the convergence of large language models, computer vision, and robot control into unified systems that can understand natural language commands, perceive visual scenes, and generate robot actions. This chapter covers voice command processing with Whisper, LLM-based task planning, and translating high-level plans into ROS 2 action sequences.
+
+## Learning Outcomes
+
+By the end of this chapter, you will be able to:
+
+1. **Build** a voice-to-action pipeline using Whisper STT → LLM planner → ROS 2 executor.
+2. **Design** a task decomposition system that converts natural language goals into robot action primitives.
+3. **Implement** a VLA inference loop that reads visual observations and outputs robot commands.
+
+---
+
+## Concepts
+
+### 5.1 What Are Vision-Language-Action Models?
+
+A VLA model takes multimodal inputs and outputs robot control signals:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    VLA Model Architecture                        │
+├─────────────────────┬───────────────────────┬───────────────────┤
+│   Vision Encoder    │   Language Encoder    │   Action Decoder  │
+│   (ViT / ResNet)    │   (LLM / CLIP)        │   (Policy Head)   │
+├─────────────────────┴───────────────────────┴───────────────────┤
+│                    Fusion Transformer                            │
+└─────────────────────────────────────────────────────────────────┘
+        ▲                    ▲                        │
+   Camera frames      "Pick up the cup"          Joint angles
+   Depth data         "Move to table"            Gripper commands
+```
+
+**Notable VLA Models:**
+| Model | Organization | Key Feature |
+|-------|-------------|-------------|
+| RT-2 | Google DeepMind | Web-scale language + robot data |
+| OpenVLA | Stanford | Open-source, 7B params |
+| π0 (Pi Zero) | Physical Intelligence | Diffusion policy + LLM |
+| Octo | UC Berkeley | Transformer + diffusion |
+
+### 5.2 Whisper: Voice Command Processing
+
+OpenAI's **Whisper** is an automatic speech recognition (ASR) model that converts audio to text:
+
+```python
+import whisper
+import sounddevice as sd
+import numpy as np
+
+class VoiceCommandProcessor:
+    def __init__(self, model_size: str = "base"):
+        self.model = whisper.load_model(model_size)
+        self.sample_rate = 16000
+
+    def record(self, duration: float = 3.0) -> np.ndarray:
+        """Record audio from microphone."""
+        print(f"Recording for {duration} seconds...")
+        audio = sd.rec(
+            int(duration * self.sample_rate),
+            samplerate=self.sample_rate,
+            channels=1,
+            dtype=np.float32,
+        )
+        sd.wait()
+        return audio.flatten()
+
+    def transcribe(self, audio: np.ndarray) -> str:
+        """Convert audio to text."""
+        result = self.model.transcribe(audio, language="en")
+        return result["text"].strip()
+
+    def listen_and_transcribe(self, duration: float = 3.0) -> str:
+        audio = self.record(duration)
+        return self.transcribe(audio)
+```
+
+### 5.3 LLM-Based Task Planning
+
+Large language models decompose natural language goals into executable robot actions:
+
+```python
+from openai import OpenAI
+
+SYSTEM_PROMPT = """You are a robot task planner. Convert natural language commands
+into a sequence of robot actions from this fixed vocabulary:
+
+ACTIONS:
+- NAVIGATE(x, y)       # Move to coordinates
+- LOOK_AT(object)      # Orient camera toward object
+- PICK(object)         # Grasp object
+- PLACE(object, target) # Place object at target location
+- OPEN(object)         # Open door/container
+- CLOSE(object)        # Close door/container
+- WAIT(seconds)        # Wait for specified time
+- SPEAK(text)          # Say something
+
+Output ONLY the action sequence as a JSON list. No explanation."""
+
+class RobotTaskPlanner:
+    def __init__(self):
+        self.client = OpenAI()
+
+    def plan(self, command: str, context: dict = None) -> list[dict]:
+        """Convert natural language command to action sequence."""
+        user_message = f"Command: {command}"
+        if context:
+            user_message += f"\nContext: {context}"
+
+        response = self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_message},
+            ],
+            response_format={"type": "json_object"},
+        )
+
+        import json
+        result = json.loads(response.choices[0].message.content)
+        return result.get("actions", [])
+
+
+# Example usage:
+planner = RobotTaskPlanner()
+actions = planner.plan("Pick up the red cup and bring it to me")
+# Output: [
+#   {"action": "LOOK_AT", "args": ["red cup"]},
+#   {"action": "NAVIGATE", "args": [1.2, 0.8]},
+#   {"action": "PICK", "args": ["red cup"]},
+#   {"action": "NAVIGATE", "args": [0.0, 0.0]},
+#   {"action": "PLACE", "args": ["red cup", "user_hand"]}
+# ]
+```
+
+### 5.4 The Full VLA Pipeline
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Complete VLA Pipeline                            │
+└─────────────────────────────────────────────────────────────────────┘
+
+  🎤 Voice Input
+       │
+       ▼
+  ┌─────────────┐
+  │   Whisper   │  "Pick up the blue bottle"
+  │   (STT)     │
+  └──────┬──────┘
+         │ text command
+         ▼
+  ┌─────────────┐    ┌─────────────┐
+  │  GPT-4o     │◄───│  Camera     │  Visual context
+  │  (Planner)  │    │  Frame      │
+  └──────┬──────┘    └─────────────┘
+         │ action sequence JSON
+         ▼
+  ┌─────────────┐
+  │  Action     │  Parse: NAVIGATE → LOOK_AT → PICK
+  │  Executor   │
+  └──────┬──────┘
+         │ ROS 2 actions
+         ▼
+  ┌─────────────┐
+  │   Nav2 /    │  /navigate_to_pose, /gripper_cmd
+  │  MoveIt2    │
+  └──────┬──────┘
+         │ motor commands
+         ▼
+  🤖 Robot executes
+```
+
+### 5.5 ROS 2 Action Execution
+
+```python
+import rclpy
+from rclpy.node import Node
+from rclpy.action import ActionClient
+from nav2_msgs.action import NavigateToPose
+from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import String
+import json
+
+class VLAExecutor(Node):
+    """Execute action plans from LLM as ROS 2 actions."""
+
+    def __init__(self):
+        super().__init__('vla_executor')
+        self.nav_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
+        self.command_sub = self.create_subscription(
+            String, '/vla_actions', self.execute_plan, 10
+        )
+        self.get_logger().info('VLA Executor ready')
+
+    def execute_plan(self, msg: String):
+        actions = json.loads(msg.data)
+        for action in actions:
+            self.get_logger().info(f"Executing: {action}")
+            if action['action'] == 'NAVIGATE':
+                self._navigate(action['args'][0], action['args'][1])
+            elif action['action'] == 'PICK':
+                self._pick(action['args'][0])
+            # ... handle other actions
+
+    def _navigate(self, x: float, y: float):
+        goal = NavigateToPose.Goal()
+        goal.pose.header.frame_id = 'map'
+        goal.pose.pose.position.x = x
+        goal.pose.pose.position.y = y
+        goal.pose.pose.orientation.w = 1.0
+        self.nav_client.send_goal_async(goal)
+```
+
+### 5.6 Visual Grounding
+
+VLA models need to connect language ("blue bottle") to pixel locations:
+
+```python
+from openai import OpenAI
+import base64
+from pathlib import Path
+
+def ground_object(image_path: str, object_name: str) -> dict:
+    """Use GPT-4V to locate an object in an image."""
+    client = OpenAI()
+
+    with open(image_path, "rb") as f:
+        image_data = base64.b64encode(f.read()).decode()
+
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{
+            "role": "user",
+            "content": [
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},
+                },
+                {
+                    "type": "text",
+                    "text": f"Locate the {object_name} in this image. "
+                            "Return bounding box as JSON: {{x, y, width, height}} "
+                            "in normalized [0,1] coordinates.",
+                },
+            ],
+        }],
+        response_format={"type": "json_object"},
+    )
+
+    import json
+    return json.loads(response.choices[0].message.content)
+```
+
+---
+
+## Lab
+
+### Lab A: Voice-to-ROS 2 Pipeline <HardwareBadge tier="RTX-LOCAL" />
+
+**Prerequisites:**
+- [ ] NVIDIA GPU (for Whisper inference)
+- [ ] Microphone
+- [ ] ROS 2 Humble
+- [ ] OpenAI API key
+
+**Instructions:**
+
+```bash
+# Step 1: Install dependencies
+pip install openai-whisper sounddevice numpy openai
+
+# Step 2: Create the voice command node
+cat > ~/ros2_ws/src/vla_demo/vla_demo/voice_commander.py << 'EOF'
+# [Copy VoiceCommandProcessor and RobotTaskPlanner from Concepts 5.2 & 5.3]
+# Publish plans to /vla_actions topic
+
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import String
+import json
+import whisper
+import sounddevice as sd
+
+class VoiceCommandNode(Node):
+    def __init__(self):
+        super().__init__('voice_commander')
+        self.pub = self.create_publisher(String, '/voice_commands', 10)
+        self.model = whisper.load_model('base')
+        self.timer = self.create_timer(5.0, self.listen)
+
+    def listen(self):
+        audio = sd.rec(int(3 * 16000), samplerate=16000, channels=1)
+        sd.wait()
+        result = self.model.transcribe(audio.flatten())
+        msg = String(data=result['text'])
+        self.pub.publish(msg)
+        self.get_logger().info(f'Command: {result["text"]}')
+
+def main():
+    rclpy.init()
+    rclpy.spin(VoiceCommandNode())
+EOF
+
+# Step 3: Build and run
+colcon build && source install/setup.bash
+ros2 run vla_demo voice_commander
+```
+
+### Lab B: OpenAI Realtime API Voice Control <HardwareBadge tier="CLOUD" />
+
+**Prerequisites:**
+- [ ] OpenAI API key with Realtime API access
+- [ ] Microphone + speakers
+
+**Instructions:**
+
+```python
+# Use OpenAI Realtime API for streaming voice understanding
+from openai import OpenAI
+
+client = OpenAI()
+
+# Create realtime session with robot tool calls
+session = client.beta.realtime.sessions.create(
+    model="gpt-4o-realtime-preview",
+    tools=[{
+        "type": "function",
+        "name": "execute_robot_action",
+        "description": "Execute a robot action",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "enum": ["NAVIGATE", "PICK", "PLACE"]},
+                "args": {"type": "array", "items": {"type": "string"}},
+            },
+        },
+    }],
+)
+print(f"Session ID: {session.id}")
+# Connect WebSocket and stream audio...
+```
+
+---
+
+## Exercises
+
+1. **Expand the action vocabulary**: Add `OPEN_DOOR(handle_location)` and `POUR(container, target)` to the LLM task planner. Test with the command "Open the cabinet and pour water into the glass."
+
+2. **Error recovery**: Implement a retry mechanism in `VLAExecutor` — if a PICK action fails (no object found), have the robot LOOK_AT the area again and retry twice before reporting failure.
+
+3. **Multi-turn conversation**: Extend the voice commander to maintain conversation history so the robot can handle follow-up commands like "Now bring me the one next to it" without re-specifying the full context.
+
+---
+
+## Summary
+
+Key takeaways from this chapter:
+
+- **VLA models** unify vision, language, and action into end-to-end robot control systems
+- **Whisper** provides robust speech-to-text for natural voice commands
+- **LLM task planners** decompose natural language goals into structured action sequences
+- **The VLA pipeline**: Voice → Whisper → GPT-4o → ROS 2 actions → robot execution
+- **Visual grounding** connects language referents to pixel locations using multimodal LLMs
+- **ROS 2 actions** provide the execution layer for long-running robot tasks
+
+**Next**: → [Chapter 6: Capstone — The Autonomous Humanoid](/ch06-capstone)

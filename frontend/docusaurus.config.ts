@@ -13,9 +13,9 @@ const config: Config = {
   tagline: 'Bridging AI agents (software brains) with robots (physical bodies)',
   favicon: 'img/favicon.ico.svg',
 
-  // GitHub Pages deployment
-  url: 'https://your-org.github.io',
-  baseUrl: '/physical-ai-robotics/',
+  // Deployment config (Vercel/GitHub Pages)
+  url: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://your-org.github.io',
+  baseUrl: process.env.VERCEL_URL ? '/' : '/physical-ai-robotics/',
   organizationName: 'your-org',
   projectName: 'physical-ai-robotics',
 

@@ -26,33 +26,21 @@ Your frontend will be live at: `https://physical-ai-humanoid-robotics.vercel.app
 
 ### Prerequisites
 - GitHub repo pushed: ✅
-- `koyeb.yaml` file in root directory: ✅
+- Backend files in root directory: ✅
+- `koyeb.yaml` configuration file: ✅
 
-### Option 1: Using koyeb.yaml (Recommended)
+### Deployment Steps
 
-The repository now includes a `koyeb.yaml` configuration file. Koyeb will automatically detect and use it:
-
-1. **Go to Koyeb**: https://app.koyeb.com
-2. **Create Web Service** → GitHub → Select `Physical-AI-Humanoid-Robotics`
-3. Koyeb will automatically detect the `koyeb.yaml` and configure the service
-4. **Add Environment Variables** (see below)
-5. **Deploy**
-
-### Option 2: Manual UI Configuration
-
-If you prefer to configure via UI instead of using the yaml file:
+The Python backend files (`main.py`, `requirements.txt`, `runtime.txt`, `Procfile`) are now in the root directory for easy detection:
 
 1. **Go to Koyeb**: https://app.koyeb.com
 2. **Create Web Service** → GitHub → Select `Physical-AI-Humanoid-Robotics`
 3. **Configure Service**:
    - **Name**: `physical-ai-backend`
    - **Region**: Choose closest to you (e.g., `fra` for Frankfurt)
-   - **Branch**: `main` or `master`
-   - **Build**: Select `Buildpack` (NOT Docker)
-   - **Builder**: `heroku/builder:22`
-   - **⚠️ IMPORTANT - Root Directory**: `backend` (must be set!)
-   - **Build command**: `pip install --upgrade pip && pip install -r requirements.txt`
-   - **Run command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - **Branch**: `master`
+   - **Build**: Select `Buildpack` (Koyeb will auto-detect Python)
+   - **Run command**: `uvicorn main:app --host 0.0.0.0 --port $PORT` (or leave default from Procfile)
    - **Port**: `8000`
 
 4. **Environment Variables** (⚠️ CRITICAL):
@@ -96,10 +84,9 @@ curl -X POST https://physical-ai-backend-xxx.koyeb.app/admin/ingest \
   -H "Authorization: Bearer YOUR_ADMIN_API_KEY"
 ```
 
-Or run locally:
+Or run locally from root:
 ```bash
-cd backend
-python scripts/ingest_chapters.py --docs ../frontend/docs/
+python scripts/ingest_chapters.py --docs frontend/docs/
 ```
 
 ---
@@ -127,16 +114,17 @@ python scripts/ingest_chapters.py --docs ../frontend/docs/
 - Ensure Qdrant and Groq keys are valid
 
 ### Koyeb "application type could not be identified" error
-This means Koyeb cannot find your Python application. Fix by:
-1. **Using koyeb.yaml** (easiest): Ensure `koyeb.yaml` is in the root directory and pushed to GitHub
-2. **Manual configuration**: In Koyeb UI, set **"Root Directory"** to `backend` (this is the most common fix)
-3. **Verify files exist**: Make sure `backend/` contains:
-   - `main.py` ✅
-   - `requirements.txt` ✅
-   - `runtime.txt` ✅
-   - `Procfile` ✅
-4. **Select Buildpack**: Make sure you select "Buildpack" not "Docker" in the UI
-5. **Check branch**: Ensure you're deploying the correct branch (main/master)
+This should now be fixed! The Python application files are in the root directory:
+- `main.py` ✅ (in root)
+- `requirements.txt` ✅ (in root)
+- `runtime.txt` ✅ (in root)
+- `Procfile` ✅ (in root)
+- `src/`, `agents/`, `scripts/`, `migrations/` ✅ (in root)
+
+If you still see this error:
+1. **Verify the branch**: Make sure you're deploying `master` branch (not `main`)
+2. **Select Buildpack**: Choose "Buildpack" not "Docker" in the UI
+3. **Check files pushed**: Verify files are on GitHub at root level
 
 ### Chat not working
 - Check browser console (F12) for CORS errors

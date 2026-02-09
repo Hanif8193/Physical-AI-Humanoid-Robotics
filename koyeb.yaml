@@ -9,7 +9,6 @@ app:
       build:
         type: buildpack
         builder: heroku/builder:22
-        working_directory: backend
         build_command: pip install --upgrade pip && pip install -r requirements.txt
       run:
         command: uvicorn main:app --host 0.0.0.0 --port $PORT

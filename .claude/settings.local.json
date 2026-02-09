@@ -29,7 +29,9 @@
       "Bash(Get-Process python -ErrorAction SilentlyContinue)",
       "Bash(Format-Table Id, ProcessName, CPU)",
       "Bash(timeout:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(ls:*)",
+      "Bash(git mv:*)"
     ]
   }
 }

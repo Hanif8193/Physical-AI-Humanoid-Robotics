@@ -156,4 +156,4 @@ async def chat(request: ChatRequest, chapter_slug: Optional[str] = None):
 
 # Vercel serverless handler
 from mangum import Mangum
-handler = Mangum(app)
+handler = Mangum(app, lifespan="off", api_gateway_base_path="/")

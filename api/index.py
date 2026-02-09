@@ -37,6 +37,19 @@ def info():
         "note": "Lightweight version - ML features use external APIs"
     }
 
+@app.post("/v1/chat")
+async def chat(request: dict):
+    """
+    Simple chat endpoint - returns a basic response
+    TODO: Add full RAG functionality with external embedding API
+    """
+    user_message = request.get("message", "")
+
+    return {
+        "response": f"Thank you for asking about '{user_message}'. The full RAG functionality is being set up. For now, this is a test response from the Vercel backend.",
+        "citations": []
+    }
+
 # Vercel serverless handler
 from mangum import Mangum
 handler = Mangum(app)

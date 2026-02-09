@@ -13,13 +13,14 @@ from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 app = FastAPI(title="Physical AI Backend")
 
-# CORS
+# CORS - Allow all origins for development
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,  # Set to False when using wildcard origin
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Initialize clients
@@ -49,6 +50,18 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "healthy", "platform": "vercel"}
+
+
+@app.post("/translate/query")
+async def translate_query(request: dict):
+    """Stub endpoint - returns query as-is (translation not implemented yet)"""
+    return {"translated": request.get("text", "")}
+
+
+@app.post("/translate/message")
+async def translate_message(request: dict):
+    """Stub endpoint - returns message as-is (translation not implemented yet)"""
+    return {"translated": request.get("text", "")}
 
 
 @app.post("/chat")

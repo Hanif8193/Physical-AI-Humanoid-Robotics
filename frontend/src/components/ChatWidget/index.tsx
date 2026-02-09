@@ -12,7 +12,7 @@ interface ChatWidgetProps {
   chapterSlug?: string;
 }
 
-const API_URL = 'http://localhost:8000/v1';
+const API_URL = 'https://worthwhile-edyth-hanifmemon8193-017466a1.koyeb.app/v1';
 
 /**
  * ChatWidget — Floating RAG chat interface with citation display.

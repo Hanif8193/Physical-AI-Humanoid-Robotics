@@ -2,7 +2,8 @@
 Vercel-compatible FastAPI backend with RAG
 Uses Groq + Qdrant APIs (no PyTorch needed)
 """
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
@@ -24,15 +25,6 @@ app.add_middleware(
     max_age=3600
 )
 
-# Add explicit CORS headers to all responses
-@app.middleware("http")
-async def add_cors_headers(request, call_next):
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
-
 # Initialize clients
 groq_api_key = os.getenv("GROQ_API_KEY")
 qdrant_url = os.getenv("QDRANT_URL")
@@ -49,7 +41,9 @@ class ChatRequest(BaseModel):
 
 
 @app.get("/")
-def root():
+@app.get("/api")
+@app.get("/api/")
+async def root():
     return {
         "status": "ok",
         "message": "RAG Chatbot API is running",
@@ -58,24 +52,29 @@ def root():
 
 
 @app.get("/health")
-def health():
+@app.get("/api/health")
+async def health():
     return {"status": "healthy", "platform": "vercel"}
 
 
 @app.post("/translate/query")
+@app.post("/api/translate/query")
 async def translate_query(request: dict):
     """Stub endpoint - returns query as-is (translation not implemented yet)"""
     return {"translated": request.get("text", "")}
 
 
 @app.post("/translate/message")
+@app.post("/api/translate/message")
 async def translate_message(request: dict):
     """Stub endpoint - returns message as-is (translation not implemented yet)"""
     return {"translated": request.get("text", "")}
 
 
 @app.post("/chat")
+@app.post("/api/chat")
 @app.post("/chat/chapter/{chapter_slug}")
+@app.post("/api/chat/chapter/{chapter_slug}")
 async def chat(request: ChatRequest, chapter_slug: Optional[str] = None):
     """
     RAG chat endpoint with Groq + Qdrant
@@ -154,6 +153,10 @@ async def chat(request: ChatRequest, chapter_slug: Optional[str] = None):
         }
 
 
-# Vercel serverless handler
-from mangum import Mangum
-handler = Mangum(app, lifespan="off", api_gateway_base_path="/")
+# Vercel serverless handler - no Mangum needed for Vercel
+# Vercel's Python runtime handles ASGI apps directly
+from fastapi import FastAPI
+import uvicorn
+
+# Export the app for Vercel
+handler = app

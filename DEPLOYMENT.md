@@ -26,19 +26,34 @@ Your frontend will be live at: `https://physical-ai-humanoid-robotics.vercel.app
 
 ### Prerequisites
 - GitHub repo pushed: ✅
+- `koyeb.yaml` file in root directory: ✅
 
-### Steps
+### Option 1: Using koyeb.yaml (Recommended)
+
+The repository now includes a `koyeb.yaml` configuration file. Koyeb will automatically detect and use it:
+
+1. **Go to Koyeb**: https://app.koyeb.com
+2. **Create Web Service** → GitHub → Select `Physical-AI-Humanoid-Robotics`
+3. Koyeb will automatically detect the `koyeb.yaml` and configure the service
+4. **Add Environment Variables** (see below)
+5. **Deploy**
+
+### Option 2: Manual UI Configuration
+
+If you prefer to configure via UI instead of using the yaml file:
 
 1. **Go to Koyeb**: https://app.koyeb.com
 2. **Create Web Service** → GitHub → Select `Physical-AI-Humanoid-Robotics`
 3. **Configure Service**:
    - **Name**: `physical-ai-backend`
-   - **Region**: Choose closest to you
-   - **Branch**: `main`
-   - **Build**: Docker or Buildpack
-   - **Root Directory**: `backend`
-   - **Port**: `8000`
+   - **Region**: Choose closest to you (e.g., `fra` for Frankfurt)
+   - **Branch**: `main` or `master`
+   - **Build**: Select `Buildpack` (NOT Docker)
+   - **Builder**: `heroku/builder:22`
+   - **⚠️ IMPORTANT - Root Directory**: `backend` (must be set!)
+   - **Build command**: `pip install --upgrade pip && pip install -r requirements.txt`
    - **Run command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - **Port**: `8000`
 
 4. **Environment Variables** (⚠️ CRITICAL):
    ```
@@ -110,6 +125,18 @@ python scripts/ingest_chapters.py --docs ../frontend/docs/
 - Verify all env vars are set
 - Check `ALLOWED_ORIGINS` includes Vercel URL
 - Ensure Qdrant and Groq keys are valid
+
+### Koyeb "application type could not be identified" error
+This means Koyeb cannot find your Python application. Fix by:
+1. **Using koyeb.yaml** (easiest): Ensure `koyeb.yaml` is in the root directory and pushed to GitHub
+2. **Manual configuration**: In Koyeb UI, set **"Root Directory"** to `backend` (this is the most common fix)
+3. **Verify files exist**: Make sure `backend/` contains:
+   - `main.py` ✅
+   - `requirements.txt` ✅
+   - `runtime.txt` ✅
+   - `Procfile` ✅
+4. **Select Buildpack**: Make sure you select "Buildpack" not "Docker" in the UI
+5. **Check branch**: Ensure you're deploying the correct branch (main/master)
 
 ### Chat not working
 - Check browser console (F12) for CORS errors

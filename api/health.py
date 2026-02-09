@@ -1,4 +1,4 @@
-"""Root endpoint for Vercel"""
+"""Health check endpoint for Vercel"""
 from http.server import BaseHTTPRequestHandler
 import json
 
@@ -12,9 +12,8 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
 
         response = {
-            "status": "ok",
-            "message": "RAG Chatbot API is running",
-            "version": "1.0.0"
+            "status": "healthy",
+            "platform": "vercel"
         }
         self.wfile.write(json.dumps(response).encode())
         return

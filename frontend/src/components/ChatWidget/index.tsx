@@ -12,7 +12,7 @@ interface ChatWidgetProps {
   chapterSlug?: string;
 }
 
-const API_URL = 'https://gleaming-joey-hanifmemon8193-7b25965a.koyeb.app/v1';
+const API_URL = 'https://physical-ai-backend.vercel.app';
 
 /**
  * ChatWidget — Floating RAG chat interface with citation display.

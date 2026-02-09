@@ -32,8 +32,9 @@ qdrant_client = QdrantClient(url=qdrant_url, api_key=qdrant_api_key) if qdrant_u
 
 
 class ChatRequest(BaseModel):
-    message: str
-    chapter_slug: Optional[str] = None
+    query: str
+    selected_context: Optional[str] = None
+    session_id: Optional[str] = None
 
 
 @app.get("/")
@@ -50,24 +51,15 @@ def health():
     return {"status": "healthy", "platform": "vercel"}
 
 
-async def embed_text(text: str) -> List[float]:
-    """
-    Use Groq to get embeddings (lightweight alternative to sentence-transformers)
-    """
-    # For now, use a simple TF-IDF-like approach or call external embedding API
-    # TODO: Add proper embedding API (Cohere, OpenAI, etc.)
-    # Returning dummy embedding for now - you'll need to add proper embedding
-    return [0.1] * 384  # Placeholder - match your embedding dimensions
-
-
-@app.post("/v1/chat")
-async def chat(request: ChatRequest):
+@app.post("/chat")
+@app.post("/chat/chapter/{chapter_slug}")
+async def chat(request: ChatRequest, chapter_slug: Optional[str] = None):
     """
     RAG chat endpoint with Groq + Qdrant
     """
     try:
-        if not request.message.strip():
-            raise HTTPException(status_code=400, detail="Message cannot be empty")
+        if not request.query.strip():
+            raise HTTPException(status_code=400, detail="Query cannot be empty")
 
         # For basic response without Qdrant search
         if not qdrant_client:
@@ -83,7 +75,7 @@ async def chat(request: ChatRequest):
                         "model": "llama-3.3-70b-versatile",
                         "messages": [
                             {"role": "system", "content": "You are an expert on Physical AI and Humanoid Robotics. Provide helpful, technical answers."},
-                            {"role": "user", "content": request.message}
+                            {"role": "user", "content": request.query}
                         ],
                         "max_tokens": 500
                     },
@@ -117,7 +109,7 @@ async def chat(request: ChatRequest):
                     "model": "llama-3.3-70b-versatile",
                     "messages": [
                         {"role": "system", "content": "You are an expert on Physical AI and Humanoid Robotics from the textbook. Provide helpful, technical answers based on the course material."},
-                        {"role": "user", "content": request.message}
+                        {"role": "user", "content": request.query}
                     ],
                     "max_tokens": 500
                 },

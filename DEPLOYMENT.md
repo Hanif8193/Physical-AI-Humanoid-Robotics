@@ -61,20 +61,20 @@ The Python backend files (`main.py`, `requirements.txt`, `runtime.txt`, `Procfil
 
 5. **Deploy** → Wait ~5 minutes (includes model download)
 
-Your backend will be live at: `https://physical-ai-backend-xxx.koyeb.app`
+Your backend is live at: `https://gleaming-joey-hanifmemon8193-7b25965a.koyeb.app`
 
 ---
 
 ## Post-Deployment
 
-### 1. Update Frontend API URL
+### 1. Update Frontend API URL ✅
 
-Edit `frontend/src/components/ChatWidget/index.tsx`:
-```typescript
-const API_URL = 'https://physical-ai-backend-xxx.koyeb.app/v1';
+The frontend has been updated to use:
+```
+https://gleaming-joey-hanifmemon8193-7b25965a.koyeb.app/v1
 ```
 
-Then commit and push → Vercel auto-redeploys.
+After pushing changes, Vercel will auto-redeploy.
 
 ### 2. Ingest Chapters to Qdrant
 

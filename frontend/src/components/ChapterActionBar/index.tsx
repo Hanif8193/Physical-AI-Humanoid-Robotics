@@ -8,7 +8,7 @@ interface ChapterActionBarProps {
   apiUrl?: string;
 }
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://worthwhile-edyth-hanifmemon8193-017466a1.koyeb.app/v1';
+const API_URL = process.env.REACT_APP_API_URL || 'https://gleaming-joey-hanifmemon8193-7b25965a.koyeb.app/v1';
 
 /**
  * ChapterActionBar — Shown only to authenticated users.

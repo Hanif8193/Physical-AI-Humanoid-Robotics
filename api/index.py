@@ -12,7 +12,8 @@ def handler(request):
         },
         'body': json.dumps({
             "status": "ok",
-            "message": "RAG Chatbot API is running",
-            "version": "2.0.0"
+            "message": "🎉 NEW VERSION IS WORKING! 🎉",
+            "version": "2.0.0",
+            "timestamp": "test-deployment"
         })
     }

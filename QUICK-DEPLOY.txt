@@ -1,0 +1,47 @@
+═══════════════════════════════════════════════════════
+  DEPLOY TO FLY.IO - COPY/PASTE THESE COMMANDS
+═══════════════════════════════════════════════════════
+
+1️⃣  INSTALL FLY CLI (PowerShell as Admin):
+   powershell -Command "iwr https://fly.io/install.ps1 -useb | iex"
+
+2️⃣  LOGIN:
+   flyctl auth login
+
+3️⃣  GO TO PROJECT:
+   cd C:\Users\PMLS\OneDrive\Desktop\ebook
+
+4️⃣  LAUNCH APP:
+   flyctl launch --no-deploy
+
+   When asked:
+   - App name: physical-ai-backend (or press Enter)
+   - Region: sin (Singapore) or closest
+   - PostgreSQL: n
+   - Redis: n
+
+5️⃣  SET SECRETS (Replace YOUR_* with actual values):
+
+flyctl secrets set GROQ_API_KEY=YOUR_GROQ_KEY
+flyctl secrets set QDRANT_URL=YOUR_QDRANT_URL
+flyctl secrets set QDRANT_API_KEY=YOUR_QDRANT_KEY
+flyctl secrets set QDRANT_COLLECTION=textbook_chunks
+flyctl secrets set EMBEDDING_MODEL=all-MiniLM-L6-v2
+flyctl secrets set EMBEDDING_DIMS=384
+flyctl secrets set CHAT_MODEL=llama-3.3-70b-versatile
+flyctl secrets set DATABASE_URL=YOUR_DATABASE_URL
+flyctl secrets set BETTER_AUTH_SECRET=YOUR_32_CHAR_SECRET
+flyctl secrets set ADMIN_API_KEY=YOUR_ADMIN_KEY
+flyctl secrets set ALLOWED_ORIGINS=https://physical-ai-humanoid-robotics.vercel.app
+
+6️⃣  DEPLOY:
+   flyctl deploy
+
+7️⃣  TEST:
+   flyctl open /health
+
+═══════════════════════════════════════════════════════
+YOUR APP URL: https://physical-ai-backend.fly.dev
+═══════════════════════════════════════════════════════
+
+Need help? Check deploy-to-fly.md for detailed guide.

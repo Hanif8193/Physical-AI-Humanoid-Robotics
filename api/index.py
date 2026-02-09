@@ -2,7 +2,7 @@
 Vercel-compatible FastAPI backend with RAG
 Uses Groq + Qdrant APIs (no PyTorch needed)
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
@@ -13,15 +13,25 @@ from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 app = FastAPI(title="Physical AI Backend")
 
-# CORS - Allow all origins for development
+# CORS - Allow all origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False,  # Set to False when using wildcard origin
-    allow_methods=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
-    expose_headers=["*"]
+    expose_headers=["*"],
+    max_age=3600
 )
+
+# Add explicit CORS headers to all responses
+@app.middleware("http")
+async def add_cors_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 # Initialize clients
 groq_api_key = os.getenv("GROQ_API_KEY")

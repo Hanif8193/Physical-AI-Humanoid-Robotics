@@ -12,7 +12,7 @@ interface ChatWidgetProps {
   chapterSlug?: string;
 }
 
-const API_URL = 'https://physical-ai-backend.vercel.app';
+const API_URL = 'https://ebook-nine-dun.vercel.app';
 
 /**
  * ChatWidget — Floating RAG chat interface with citation display.

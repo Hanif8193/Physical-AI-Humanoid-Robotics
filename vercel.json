@@ -1,0 +1,44 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/**/*.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/chat",
+      "dest": "/api/chat.py",
+      "methods": ["POST", "OPTIONS"]
+    },
+    {
+      "src": "/chat/chapter/(.*)",
+      "dest": "/api/chat.py",
+      "methods": ["POST", "OPTIONS"]
+    },
+    {
+      "src": "/translate/query",
+      "dest": "/api/translate/query.py",
+      "methods": ["POST", "OPTIONS"]
+    },
+    {
+      "src": "/translate/message",
+      "dest": "/api/translate/message.py",
+      "methods": ["POST", "OPTIONS"]
+    },
+    {
+      "src": "/health",
+      "dest": "/api/health.py",
+      "methods": ["GET", "OPTIONS"]
+    },
+    {
+      "src": "/",
+      "dest": "/api/index.py",
+      "methods": ["GET"]
+    }
+  ],
+  "env": {
+    "PYTHON_VERSION": "3.11"
+  }
+}

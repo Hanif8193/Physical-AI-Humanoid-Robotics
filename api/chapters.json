@@ -1,0 +1,122 @@
+{
+  "chapters": [
+    {
+      "slug": "ch01-intro-physical-ai",
+      "title": "Introduction to Physical AI & Embodied Intelligence",
+      "number": 1,
+      "summary": "Physical AI is the frontier where artificial intelligence leaves the digital realm and enters the physical world — inhabiting robots, drones, and autonomous machines that perceive, reason, and act. This chapter introduces foundational concepts of embodied intelligence, contrasting traditional AI software agents with physical AI systems that must cope with the real world's complexity, uncertainty, and irreversibility.",
+      "key_concepts": [
+        "Physical AI refers to intelligent systems that perceive the physical world through sensors, reason about it using AI models, and interact with it through actuators",
+        "Physical AI agents must sense the environment, process sensory data in real time, plan actions based on goals, act physically, and learn from results",
+        "Unlike software AI, physical AI faces real-world constraints: latency in milliseconds, irreversible errors, and unforgiving environments",
+        "Embodied intelligence requires coping with the sense-plan-act loop in dynamic, uncertain environments"
+      ],
+      "learning_outcomes": [
+        "Define embodied intelligence and distinguish it from disembodied (software-only) AI",
+        "Analyze the unique challenges physical AI systems face compared to software agents",
+        "Design a conceptual architecture for a simple physical AI system using the sense–plan–act loop"
+      ]
+    },
+    {
+      "slug": "ch02-ros2-fundamentals",
+      "title": "The Robotic Nervous System (ROS 2 Fundamentals)",
+      "number": 2,
+      "summary": "ROS 2 (Robot Operating System 2) is the next generation framework for building robot applications. It provides a modular, scalable, and secure architecture for robot software development. This chapter covers ROS 2 fundamentals including nodes, topics, services, actions, and the communication framework that enables distributed robot systems.",
+      "key_concepts": [
+        "ROS 2 is a distributed middleware framework for robot software, not an operating system",
+        "Nodes are independent processes that communicate via topics (publish-subscribe), services (request-response), and actions (long-running tasks)",
+        "ROS 2 uses DDS (Data Distribution Service) for real-time, reliable communication",
+        "The framework supports multi-platform development (Linux, Windows, macOS) and real-time capabilities",
+        "ROS 2 provides tools for building, debugging, and deploying robot applications"
+      ],
+      "learning_outcomes": [
+        "Understand ROS 2 architecture and communication patterns",
+        "Create and manage ROS 2 nodes, topics, and services",
+        "Build distributed robot applications using ROS 2 framework",
+        "Debug and monitor ROS 2 systems using built-in tools"
+      ]
+    },
+    {
+      "slug": "ch03-digital-twin",
+      "title": "Digital Twins & Simulation (Gazebo + Unity)",
+      "number": 3,
+      "summary": "Digital twins and simulation environments allow developers to test robot behaviors safely before deploying to hardware. This chapter explores Gazebo and Unity simulation platforms, covering how to create virtual representations of robots and environments, run physics simulations, and validate AI algorithms in controlled settings.",
+      "key_concepts": [
+        "Digital twins are virtual replicas of physical robots used for testing and development",
+        "Gazebo provides physics-based simulation for robotics with sensor modeling and realistic environments",
+        "Unity offers high-fidelity graphics and flexible simulation for complex scenarios",
+        "Simulation reduces development costs, increases safety, and accelerates iteration cycles",
+        "Sim-to-real transfer techniques help bridge the gap between simulation and physical deployment"
+      ],
+      "learning_outcomes": [
+        "Create digital twin models of robots in simulation environments",
+        "Configure physics engines and sensor models for realistic testing",
+        "Develop and validate robot behaviors in Gazebo and Unity",
+        "Apply sim-to-real techniques to transfer simulated models to hardware"
+      ]
+    },
+    {
+      "slug": "ch04-isaac-platform",
+      "title": "The AI Robot Brain (NVIDIA Isaac Platform)",
+      "number": 4,
+      "summary": "NVIDIA Isaac is a comprehensive platform for developing, simulating, and deploying AI-powered robots. It combines Isaac Sim (simulation), Isaac SDK (development tools), and Isaac ROS (ROS 2 packages) to provide end-to-end robotics development. This chapter covers perception, navigation, and manipulation using Isaac platform.",
+      "key_concepts": [
+        "Isaac Sim provides photorealistic simulation with RTX ray tracing and physics",
+        "Isaac SDK offers optimized libraries for perception, planning, and control",
+        "Isaac ROS provides GPU-accelerated ROS 2 nodes for real-time performance",
+        "The platform enables development on simulation and deployment to Jetson hardware",
+        "Isaac supports computer vision, path planning, and manipulation tasks"
+      ],
+      "learning_outcomes": [
+        "Set up and configure NVIDIA Isaac platform for robot development",
+        "Build perception pipelines using Isaac computer vision tools",
+        "Implement navigation and path planning with Isaac SDK",
+        "Deploy AI models to Jetson hardware using Isaac ROS"
+      ]
+    },
+    {
+      "slug": "ch05-vla",
+      "title": "Vision-Language-Action (LLMs + Robotics)",
+      "number": 5,
+      "summary": "Vision-Language-Action (VLA) models combine large language models with vision and robotic control, enabling robots to understand natural language instructions, perceive their environment, and execute complex tasks. This chapter explores how LLMs are transforming robotics through grounded language understanding and multimodal learning.",
+      "key_concepts": [
+        "VLA models integrate vision, language, and action for embodied AI",
+        "Large Language Models (LLMs) provide reasoning and planning capabilities for robots",
+        "Vision-language grounding connects natural language to visual perception",
+        "Robots can follow complex, multi-step instructions given in natural language",
+        "VLA enables zero-shot or few-shot learning for new tasks"
+      ],
+      "learning_outcomes": [
+        "Understand how LLMs are applied to robotic systems",
+        "Implement vision-language grounding for task understanding",
+        "Build VLA pipelines that connect language, vision, and robot actions",
+        "Deploy language-conditioned policies for robot control"
+      ]
+    },
+    {
+      "slug": "ch06-capstone",
+      "title": "Capstone: The Autonomous Humanoid",
+      "number": 6,
+      "summary": "This capstone project integrates all previous chapters to build an autonomous humanoid robot system. Students design, simulate, and deploy a complete Physical AI system that perceives its environment, understands natural language commands, plans actions, and executes tasks autonomously. The project demonstrates end-to-end robotics development from simulation to deployment.",
+      "key_concepts": [
+        "Integration of ROS 2, simulation, Isaac platform, and VLA models",
+        "Full-stack robotics development: perception, planning, control, and learning",
+        "Hardware deployment to humanoid robot platforms or simulation",
+        "System architecture design for autonomous operation",
+        "Testing, validation, and iterative refinement of robot behaviors"
+      ],
+      "learning_outcomes": [
+        "Design complete autonomous robot systems from requirements to deployment",
+        "Integrate multiple AI and robotics technologies into cohesive system",
+        "Debug and optimize full-stack robot applications",
+        "Demonstrate end-to-end Physical AI capabilities in real-world scenarios"
+      ]
+    }
+  ],
+  "metadata": {
+    "total_chapters": 6,
+    "textbook_title": "Physical AI & Humanoid Robotics",
+    "version": "1.0.0",
+    "language": "English"
+  }
+}

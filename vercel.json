@@ -11,6 +11,11 @@
   ],
   "routes": [
     {
+      "src": "/test",
+      "dest": "/api/test.py",
+      "methods": ["GET"]
+    },
+    {
       "src": "/chat",
       "dest": "/api/chat.py",
       "methods": ["POST", "OPTIONS"]

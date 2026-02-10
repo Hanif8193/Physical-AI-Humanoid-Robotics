@@ -1,1 +1,2 @@
-# No external dependencies needed - using Python standard library only
+# No external dependencies required
+# All api/ functions use Python standard library only (json, os, urllib)

@@ -49,6 +49,7 @@ class handler(BaseHTTPRequestHandler):
             }).encode())
 
         except Exception as e:
+            import traceback
             self.send_response(500)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -56,5 +57,8 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({
                 "status": "error",
                 "error": str(e),
-                "error_type": type(e).__name__
+                "error_type": type(e).__name__,
+                "traceback": traceback.format_exc(),
+                "groq_key_present": bool(os.getenv("GROQ_API_KEY")),
+                "groq_key_length": len(os.getenv("GROQ_API_KEY", ""))
             }).encode())

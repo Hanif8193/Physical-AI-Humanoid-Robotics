@@ -58,3 +58,5 @@ htmlcov/
 # Misc
 *.tmp
 *.bak
+
+.vercel

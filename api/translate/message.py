@@ -2,6 +2,7 @@
 Translate message endpoint for Vercel - English to Urdu translation for responses
 Uses Groq to translate RAG responses to Urdu for display
 """
+from http.server import BaseHTTPRequestHandler
 import json
 import os
 import urllib.request
@@ -36,74 +37,58 @@ def translate_with_groq(text: str, groq_key: str, source_lang: str = "English", 
             return result["choices"][0]["message"]["content"].strip()
     except Exception as e:
         print(f"Translation error: {e}")
-        return text  # Fallback to original text
+        return text
 
 
-def handler(request):
-    """Translate English response to Urdu for display"""
-    # Handle CORS preflight
-    if request.get('method') == 'OPTIONS':
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                'Access-Control-Allow-Headers': '*',
-            },
-            'body': ''
-        }
+class handler(BaseHTTPRequestHandler):
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', '*')
+        self.end_headers()
+        return
 
-    try:
-        # Parse request body
-        body = request.get('body', '{}')
-        if isinstance(body, bytes):
-            body = body.decode('utf-8')
-        data = json.loads(body)
+    def do_POST(self):
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(body) if body else {}
 
-        text = data.get('text', '')
+            text = data.get('text', '')
 
-        if not text:
-            return {
-                'statusCode': 400,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*',
-                },
-                'body': json.dumps({"error": "Text cannot be empty"})
-            }
+            if not text:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Text cannot be empty"}).encode())
+                return
 
-        groq_key = os.getenv("GROQ_API_KEY")
-        if not groq_key:
-            return {
-                'statusCode': 500,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*',
-                },
-                'body': json.dumps({"error": "GROQ_API_KEY not configured"})
-            }
+            groq_key = os.getenv("GROQ_API_KEY")
+            if not groq_key:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "GROQ_API_KEY not configured"}).encode())
+                return
 
-        translated = translate_with_groq(text, groq_key, source_lang="English", target_lang="Urdu")
+            translated = translate_with_groq(text, groq_key, source_lang="English", target_lang="Urdu")
 
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-            },
-            'body': json.dumps({"translated": translated})
-        }
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps({"translated": translated}).encode())
 
-    except Exception as e:
-        print(f"Error: {e}")
-        return {
-            'statusCode': 500,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-            },
-            'body': json.dumps({
-                "translated": text,  # Fallback to original
+        except Exception as e:
+            print(f"Error: {e}")
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "translated": data.get('text', ''),
                 "error": str(e)
-            })
-        }
+            }).encode())

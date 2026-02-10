@@ -31,7 +31,8 @@
       "Bash(timeout:*)",
       "Bash(test:*)",
       "Bash(ls:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(vercel:*)"
     ]
   }
 }

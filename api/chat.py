@@ -100,7 +100,8 @@ Retrieved context:
         data=json.dumps(payload).encode('utf-8'),
         headers={
             "Authorization": f"Bearer {groq_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (compatible; Physical-AI-Bot/1.0)"
         }
     )
 

@@ -37,8 +37,8 @@ def translate_with_groq(text: str, groq_key: str, source_lang: str = "English", 
             result = json.loads(response.read().decode('utf-8'))
             return result["choices"][0]["message"]["content"].strip()
     except Exception as e:
-        print(f"Translation error: {e}")
-        return text
+        print(f"Translation error: {type(e).__name__}: {e}")
+        raise RuntimeError(f"Groq failed: {type(e).__name__}: {e}")
 
 
 class handler(BaseHTTPRequestHandler):

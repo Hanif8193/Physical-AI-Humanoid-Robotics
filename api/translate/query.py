@@ -72,7 +72,7 @@ class handler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": "Text cannot be empty"}).encode())
                 return
 
-            groq_key = os.getenv("GROQ_API_KEY")
+            groq_key = (os.getenv("GROQ_API_KEY") or '').strip()
             if not groq_key:
                 self.send_response(500)
                 self.send_header('Content-Type', 'application/json')

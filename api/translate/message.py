@@ -37,8 +37,8 @@ def translate_with_groq(text: str, groq_key: str, source_lang: str = "English", 
             result = json.loads(response.read().decode('utf-8'))
             return result["choices"][0]["message"]["content"].strip()
     except Exception as e:
-        print(f"Translation error: {type(e).__name__}: {e}")
-        raise RuntimeError(f"Groq failed: {type(e).__name__}: {e}")
+        print(f"Translation error: {e}")
+        return text
 
 
 class handler(BaseHTTPRequestHandler):
@@ -66,7 +66,7 @@ class handler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": "Text cannot be empty"}).encode())
                 return
 
-            groq_key = os.getenv("GROQ_API_KEY")
+            groq_key = (os.getenv("GROQ_API_KEY") or '').strip()
             if not groq_key:
                 self.send_response(500)
                 self.send_header('Content-Type', 'application/json')

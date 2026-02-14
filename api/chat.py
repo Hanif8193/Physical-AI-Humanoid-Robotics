@@ -226,7 +226,7 @@ class handler(BaseHTTPRequestHandler):
                 return
 
             # Get GROQ API key
-            groq_key = os.getenv("GROQ_API_KEY")
+            groq_key = (os.getenv("GROQ_API_KEY") or '').strip()
             if not groq_key:
                 self.send_response(500)
                 self.send_header('Content-Type', 'application/json')

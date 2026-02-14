@@ -33,7 +33,8 @@ def translate_with_groq(text: str, groq_key: str, source_lang: str = "Urdu", tar
         data=json.dumps(payload).encode('utf-8'),
         headers={
             "Authorization": f"Bearer {groq_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (compatible; Physical-AI-Bot/1.0)"
         }
     )
 
@@ -86,7 +87,7 @@ class handler(BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            self.wfile.write(json.dumps({"translated": translated}).encode())
+            self.wfile.write(json.dumps({"translated": translated}, ensure_ascii=False).encode('utf-8'))
 
         except Exception as e:
             print(f"Error: {e}")
